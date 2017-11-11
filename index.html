@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Pixi</title>
+
+        <style>* {
+            padding: 0;
+            margin: 0
+        }
+
+        .button {
+            padding: 16px;
+            background: mediumpurple;
+            font-size: large;
+            float: right;
+            margin: 16px;
+        }
+        </style>
+
+    </head>
+    <body>
+
+        <button class="button" onclick="location.reload()">Reset!</button>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.5.1/pixi.min.js"></script>
+
+        <script type="text/javascript">
+            let Container = PIXI.Container,
+                autoDetectRenderer = PIXI.autoDetectRenderer,
+                loader = PIXI.loader,
+                resources = PIXI.loader.resources,
+                Sprite = PIXI.Sprite,
+                Text = PIXI.Text;
+
+            let keyLeft = keyboard(37);
+            let keyRight = keyboard(39);
+            let keyUp = keyboard(38);
+            let keyDown = keyboard(40);
+
+            let monsterSprite;
+            let spikesSprite;
+            let message;
+            let state = play;
+            const stageW = 512;
+            const stageH = 512;
+            const stageRectangle = {
+                x: 10,
+                y: 10,
+                width: stageW - 10,
+                height: stageH - 10
+            };
+
+            const stage = new Container();
+            const collisionStage = new Container();
+            const gameStage = new Container();
+
+            stage.addChild(gameStage);
+            stage.addChild(collisionStage);
+
+            collisionStage.visible = false;
+
+            let collisionMessage = new Text(
+                "Collision!!",
+                {fontFamily: "Arial", fontSize: 32, fill: "white"}
+            );
+            collisionMessage.style = {
+                wordWrap: true,
+                wordWrapWidth: 100,
+                fill: "cyan",
+            };
+
+            collisionMessage.position.set(10, 10);
+            collisionStage.addChild(collisionMessage);
+
+            const renderer = autoDetectRenderer(256, 256);
+            document.body.appendChild(renderer.view);
+
+            renderer.view.style.border = "1px dashed purple";
+            renderer.backgroundColor = 0x061639;
+
+            renderer.autoResize = true;
+            renderer.resize(stageW, stageH);
+
+            let monsterPath = "assets/monster.png";
+            let spikesPath = "assets/spike_monster.png";
+            loader
+                .add([
+                    monsterPath,
+                    spikesPath])
+                .load(setup);
+
+
+            function initMonster() {
+                monsterSprite = new Sprite(
+                    resources[monsterPath].texture
+                );
+
+                monsterSprite.x = 96;
+                monsterSprite.y = 96;
+
+                monsterSprite.scale.x = 0.5;
+                monsterSprite.scale.y = 0.5;
+
+                monsterSprite.vx = 0;
+                monsterSprite.vy = 0;
+
+                let w = monsterSprite.width;
+                monsterSprite.w = w;
+                let h = monsterSprite.height;
+                monsterSprite.h = h;
+                monsterSprite.maxX = stageW - w;
+                monsterSprite.maxY = stageH - h;
+//                monsterSprite.anchor.x = 0.5;
+//                monsterSprite.anchor.y = 0.5;
+//                monsterSprite.rotation = 0.5;
+
+//                monsterSprite.width = 80;
+//                monsterSprite.height = 80;
+
+                gameStage.addChild(monsterSprite);
+            }
+
+            function initSpikes() {
+                spikesSprite = new Sprite(
+                    resources[spikesPath].texture
+                );
+
+                spikesSprite.x = 250;
+                spikesSprite.y = 250;
+
+                spikesSprite.scale.x = 0.5;
+                spikesSprite.scale.y = 0.5;
+
+                gameStage.addChild(spikesSprite);
+            }
+
+            function initMessage() {
+                message = new Text(
+                    "Hello Pixi!",
+                    {fontFamily: "Arial", fontSize: 32, fill: "white"}
+                );
+                message.style = {
+                    wordWrap: true,
+                    wordWrapWidth: 100,
+                    fill: "cyan",
+                };
+
+                message.position.set(10, 10);
+                gameStage.addChild(message);
+            }
+
+            function setup() {
+                initMonster();
+                initSpikes();
+                initMessage();
+
+                setArrowActions();
+                gameLoop();
+            }
+
+            function gameLoop() {
+                requestAnimationFrame(gameLoop);
+                state();
+                renderer.render(stage);
+            }
+
+            function logCollision() {
+                if (hitTestRectangle(monsterSprite, spikesSprite)) {
+//                    message.text = "Collision!";
+                    gameStage.visible = false;
+                    collisionStage.visible = true;
+                }
+            }
+
+            function setArrowActions() {
+                keyLeft.press = function () {
+                    monsterSprite.stopped = false;
+                    monsterSprite.vx = -1;
+                    message.text = "Left";
+                    logCollision();
+                };
+                keyLeft.release = function () {
+                    if (!keyRight.isDown) {
+                        monsterSprite.vx = 0;
+                    }
+                };
+                keyRight.press = function () {
+                    monsterSprite.stopped = false;
+                    monsterSprite.vx = 1;
+                    message.text = "Right";
+                    logCollision();
+                };
+                keyRight.release = function () {
+                    if (!keyLeft.isDown) {
+                        monsterSprite.vx = 0;
+                    }
+                };
+                keyUp.press = function () {
+                    monsterSprite.stopped = false;
+                    monsterSprite.vy = -1;
+                    message.text = "Up";
+                    logCollision();
+                };
+                keyUp.release = function () {
+                    if (!keyDown.isDown) {
+                        monsterSprite.vy = 0;
+                    }
+                };
+                keyDown.press = function () {
+                    monsterSprite.stopped = false;
+                    monsterSprite.vy = 1;
+                    message.text = "Down";
+                    logCollision();
+                };
+                keyDown.release = function () {
+                    if (!keyUp.isDown) {
+                        monsterSprite.vy = 0;
+                    }
+                };
+            }
+
+            function play() {
+                let monsterHit = contain(monsterSprite, stageRectangle);
+                if (monsterHit) {
+                    monsterSprite.stopped = true;
+                }
+
+                if (!monsterSprite.stopped) {
+                    monsterSprite.x += monsterSprite.vx;
+                    monsterSprite.y += monsterSprite.vy;
+                }
+            }
+
+            function keyboard(keyCode) {
+                let key = {};
+                key.code = keyCode;
+                key.isDown = false;
+                key.isUp = true;
+                key.press = undefined;
+                key.release = undefined;
+                //The `downHandler`
+                key.downHandler = function (event) {
+                    if (event.keyCode === key.code) {
+                        if (key.isUp && key.press) key.press();
+                        key.isDown = true;
+                        key.isUp = false;
+                    }
+                    event.preventDefault();
+                };
+
+                //The `upHandler`
+                key.upHandler = function (event) {
+                    if (event.keyCode === key.code) {
+                        if (key.isDown && key.release) key.release();
+                        key.isDown = false;
+                        key.isUp = true;
+                    }
+                    event.preventDefault();
+                };
+
+                //Attach event listeners
+                window.addEventListener(
+                    "keydown", key.downHandler.bind(key), false
+                );
+                window.addEventListener(
+                    "keyup", key.upHandler.bind(key), false
+                );
+                return key;
+            }
+
+            function hitTestRectangle(r1, r2) {
+
+                //Define the variables we'll need to calculate
+                let hit, combinedHalfWidths, combinedHalfHeights, vx, vy;
+
+                //hit will determine whether there's a collision
+                hit = false;
+
+                //Find the center points of each sprite
+                r1.centerX = r1.x + r1.width / 2;
+                r1.centerY = r1.y + r1.height / 2;
+                r2.centerX = r2.x + r2.width / 2;
+                r2.centerY = r2.y + r2.height / 2;
+
+                //Find the half-widths and half-heights of each sprite
+                r1.halfWidth = r1.width / 2;
+                r1.halfHeight = r1.height / 2;
+                r2.halfWidth = r2.width / 2;
+                r2.halfHeight = r2.height / 2;
+
+                //Calculate the distance vector between the sprites
+                vx = r1.centerX - r2.centerX;
+                vy = r1.centerY - r2.centerY;
+
+                //Figure out the combined half-widths and half-heights
+                combinedHalfWidths = r1.halfWidth + r2.halfWidth;
+                combinedHalfHeights = r1.halfHeight + r2.halfHeight;
+
+                //Check for a collision on the x axis
+                if (Math.abs(vx) < combinedHalfWidths) {
+
+                    //A collision might be occuring. Check for a collision on the y axis
+                    if (Math.abs(vy) < combinedHalfHeights) {
+                        //There's definitely a collision happening
+                        hit = true;
+                    } else {
+
+                        //There's no collision on the y axis
+                        hit = false;
+                    }
+                } else {
+                    //There's no collision on the x axis
+                    hit = false;
+                }
+                //`hit` will be either `true` or `false`
+                return hit;
+            }
+
+            function contain(sprite, container) {
+                let collision = undefined;
+
+                //Left
+                if (sprite.x < container.x) {
+                    sprite.x = container.x;
+                    collision = "left";
+                }
+
+                //Top
+                if (sprite.y < container.y) {
+                    sprite.y = container.y;
+                    collision = "top";
+                }
+
+                //Right
+                if (sprite.x + sprite.width > container.width) {
+                    sprite.x = container.width - sprite.width;
+                    collision = "right";
+                }
+
+                //Bottom
+                if (sprite.y + sprite.height > container.height) {
+                    sprite.y = container.height - sprite.height;
+                    collision = "bottom";
+                }
+
+                //Return the `collision` value
+                return collision;
+            }
+
+            function getPosition(sprite, global) {
+                if (global) {
+                    return sprite.getGlobalPosition();
+                }
+                return sprite.position;
+            }
+
+            function distanceBetween(sprite1, sprite2) {
+                return sprite1.toLocal(sprite1.position, sprite2);
+            }
+
+        </script>
+    </body>
+</html>
